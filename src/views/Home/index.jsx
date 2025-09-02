@@ -1,58 +1,104 @@
+import { useState, useEffect } from 'react';
 import Header from '../../components/Header';
 import Main from '../../components/Main';
 import Footer from '../../components/Footer';
+import PokemonCard from '../../components/ui/pokemonCard';
+import Pagination from '../../components/Pagination';
+
 import { getPokemonList, getPokemonDetails } from '../../services/pokemonService';
 
-let allPokemons = []; // armazena todos os pokémons carregados
 
-async function carregarPokemons() {
-  const basicList = await getPokemonList(500);
-  const detailedList = [];
-
-  for (let i = 0; i < basicList.length; i++) {
-    const details = await getPokemonDetails(basicList[i].url);
-    detailedList.push(details);
-  }
-
-  allPokemons = detailedList;
-  exibirPokemons(allPokemons);
-}
-
-function exibirPokemons(lista) {
-  const container = document.getElementById('pokemonList');
-  container.innerHTML = '';
-  lista.forEach(p => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <img src="${p.image}" alt="${p.name}" />
-      <h2>${p.name}</h2>
-      <p>ID: ${p.id}</p>
-      <p>${p.description}</p>
-    `;
-    container.appendChild(li);
-  });
-}
+const POKEMONS_PER_PAGE = 20;
 
 function Home() {
-  // função para filtrar Pokémon conforme o input
-  function filtrar(event) {
-    const termo = event.target.value.toLowerCase();
-    const filtrados = allPokemons.filter(p => p.name.toLowerCase().includes(termo));
-    exibirPokemons(filtrados);
-  }
+    const [pokemons, setPokemons] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPokemons, setTotalPokemons] = useState(0);
 
-  // carrega os Pokémon quando o componente é montado
-  setTimeout(() => carregarPokemons(), 0);
 
-  return (
-    <>
-      <Header onSearchChange={filtrar} />
-      <Main>
-        <ul id="pokemonList"></ul>
-      </Main>
-      <Footer />
-    </>
-  );
+    useEffect(() => {
+        async function loadPokemonsByPage() {
+            setIsLoading(true);
+            try {
+
+                const offset = (currentPage - 1) * POKEMONS_PER_PAGE;
+                const { results, count } = await getPokemonList(POKEMONS_PER_PAGE, offset);
+                setTotalPokemons(count);
+
+                const detailedList = await Promise.all(
+                    results.map(item => getPokemonDetails(item.url))
+                );
+                setPokemons(detailedList);
+            } catch (error) {
+                console.error("Erro ao carregar os Pokémons:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadPokemonsByPage();
+    }, [currentPage]);
+
+
+    function handleSearchChange(event) {
+        setSearchTerm(event.target.value);
+    }
+
+    async function handleSearchSubmit(event) {
+        event.preventDefault();
+        const value = searchTerm.toLowerCase();
+
+        if (value.length > 0) {
+            const { results } = await getPokemonList(2000, 0);
+            const allDetailedList = await Promise.all(
+                results.map(item => getPokemonDetails(item.url))
+            );
+            const filtered = allDetailedList.filter(p => p.name.toLowerCase().includes(value));
+            setPokemons(filtered);
+            setTotalPokemons(filtered.length);
+        } else {
+
+            setCurrentPage(1);
+        }
+    }
+
+
+    const handleNextPage = () => setCurrentPage(prev => prev + 1);
+    const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+    const handleLastPage = () => setCurrentPage(Math.ceil(totalPokemons / POKEMONS_PER_PAGE));
+
+    return (
+        <>
+            <Header
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                onSearchSubmit={handleSearchSubmit}
+            />
+            <Main>
+                {isLoading ? (
+                    <p>Carregando Pokémons...</p>
+                ) : (
+                    <>
+                        <ul id="pokemonList">
+                            {pokemons.map(p => (
+                                <PokemonCard key={p.id} pokemon={p} />
+                            ))}
+                        </ul>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPokemons={totalPokemons}
+                            pokemonsPerPage={POKEMONS_PER_PAGE}
+                            onNext={handleNextPage}
+                            onPrev={handlePrevPage}
+                            onLast={handleLastPage}
+                        />
+                    </>
+                )}
+            </Main>
+            <Footer />
+        </>
+    );
 }
 
 

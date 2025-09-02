@@ -4,7 +4,7 @@ function PokemonCard({ pokemon }) {
       <img src={pokemon.image} alt={pokemon.name} />
       <h2>{pokemon.name}</h2>
       <p>ID: {pokemon.id}</p>
-t      <p>{pokemon.description}</p>
+      <p>{pokemon.description}</p>
     </li>
   );
 }
