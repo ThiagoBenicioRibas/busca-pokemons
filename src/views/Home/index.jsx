@@ -1,105 +1,111 @@
-import { useState, useEffect } from 'react';
-import Header from '../../components/Header';
-import Main from '../../components/Main';
-import Footer from '../../components/Footer';
-import PokemonCard from '../../components/ui/pokemonCard';
+import './style.css';
+import PokemonCard from '../../components/PokemonCard';
 import Pagination from '../../components/Pagination';
-
-import { getPokemonList, getPokemonDetails } from '../../services/pokemonService';
-
-
-const POKEMONS_PER_PAGE = 20;
+import AriaLive from '../../ui/AriaLive';
+import Layout from '../../layout';
+import { pegarPokemons } from '../../services/pokemonService.js';
+import { useEffect, useState, useRef } from 'react';
 
 function Home() {
-    const [pokemons, setPokemons] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPokemons, setTotalPokemons] = useState(0);
+  const [pokemons, definirPokemons] = useState([]);
+  const [proximo, definirProximo] = useState(null);
+  const [anterior, definirAnterior] = useState(null);
+  const [quantidade, definirQuantidade] = useState(null);
+  const [termoBusca, setTermoBusca] = useState('');
+  const [mensagem, setMensagem] = useState('');
+  const [exibirResultadoBusca, setExibirResultadoBusca] = useState(false);
+  const listaRef = useRef(null);
+  const h2BuscaRef = useRef(null);
 
+  useEffect(() => {
+    carregarPokemons(0);
+  }, []);
 
-    useEffect(() => {
-        async function loadPokemonsByPage() {
-            setIsLoading(true);
-            try {
+  const fornecerFeedback = (texto) => setMensagem(texto);
 
-                const offset = (currentPage - 1) * POKEMONS_PER_PAGE;
-                const { results, count } = await getPokemonList(POKEMONS_PER_PAGE, offset);
-                setTotalPokemons(count);
+  async function carregarPokemons(inicio = 0, url = null) {
+    const resposta = await pegarPokemons(inicio, url);
+    definirPokemons(resposta.details);
+    definirProximo(resposta.next);
+    definirAnterior(resposta.previous);
+    definirQuantidade(resposta.count);
+    fornecerFeedback(`Mostrando ${resposta.details.length} pokémons`);
+    listaRef.current?.focus();
+    setExibirResultadoBusca(false);
+  }
 
-                const detailedList = await Promise.all(
-                    results.map(item => getPokemonDetails(item.url))
-                );
-                setPokemons(detailedList);
-            } catch (error) {
-                console.error("Erro ao carregar os Pokémons:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        loadPokemonsByPage();
-    }, [currentPage]);
+  async function navegar(eProximo) {
+    await carregarPokemons(0, eProximo ? proximo : anterior);
+  }
 
+  async function navegarPrimeiraOuUltima(destino) {
+    const url =
+      destino === 'primeira'
+        ? null
+        : 'https://pokeapi.co/api/v2/pokemon?offset=1282&limit=20';
+    await carregarPokemons(0, url);
+  }
 
-    function handleSearchChange(event) {
-        setSearchTerm(event.target.value);
+  async function buscarPokemonPorNome(nome) {
+    try {
+      const resposta = await fetch(`https://pokeapi.co/api/v2/pokemon/${nome}`);
+      if (!resposta.ok) throw new Error('Não encontrado');
+      const dados = await resposta.json();
+      const pokemonFormatado = {
+        id: dados.id,
+        nome: dados.name,
+        peso: dados.weight,
+        imagem:
+          dados.id > 930
+            ? dados.sprites.front_default
+            : `https://raw.githubusercontent.com/PokeAPI/sprites/refs/heads/master/sprites/pokemon/other/showdown/${dados.id}.gif`,
+      };
+      definirPokemons([pokemonFormatado]);
+      fornecerFeedback(`Pokémon ${dados.name} encontrado!`);
+      setExibirResultadoBusca(true);
+      h2BuscaRef.current?.focus();
+    } catch (error) {
+      definirPokemons([]);
+      fornecerFeedback('Nenhum Pokémon encontrado com esse nome.');
+      setExibirResultadoBusca(true);
+      h2BuscaRef.current?.focus();
     }
+  }
 
-    async function handleSearchSubmit(event) {
-        event.preventDefault();
-        const value = searchTerm.toLowerCase();
+  return (
+    <Layout
+      termoBusca={termoBusca}
+      aoMudarBusca={(e) => setTermoBusca(e.target.value)}
+      onSearch={buscarPokemonPorNome}
+    >
+      <AriaLive mensagem={mensagem} />
 
-        if (value.length > 0) {
-            const { results } = await getPokemonList(2000, 0);
-            const allDetailedList = await Promise.all(
-                results.map(item => getPokemonDetails(item.url))
-            );
-            const filtered = allDetailedList.filter(p => p.name.toLowerCase().includes(value));
-            setPokemons(filtered);
-            setTotalPokemons(filtered.length);
-        } else {
+      {!exibirResultadoBusca && <h2>Pokémons carregados</h2>}
 
-            setCurrentPage(1);
-        }
-    }
+      {exibirResultadoBusca && (
+        <h2 tabIndex={-1} ref={h2BuscaRef}>
+          Resultado da busca
+        </h2>
+      )}
 
+      <div className="home-pokemons" tabIndex={-1} ref={listaRef}>
+        {pokemons.map((pokemon) => (
+          <PokemonCard
+            key={pokemon.id}
+            nome={pokemon.nome}
+            imagem={pokemon.imagem}
+            peso={pokemon.peso}
+          />
+        ))}
+      </div>
 
-    const handleNextPage = () => setCurrentPage(prev => prev + 1);
-    const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
-    const handleLastPage = () => setCurrentPage(Math.ceil(totalPokemons / POKEMONS_PER_PAGE));
-
-    return (
-        <>
-            <Header
-                searchTerm={searchTerm}
-                onSearchChange={handleSearchChange}
-                onSearchSubmit={handleSearchSubmit}
-            />
-            <Main>
-                {isLoading ? (
-                    <p>Carregando Pokémons...</p>
-                ) : (
-                    <>
-                        <ul id="pokemonList">
-                            {pokemons.map(p => (
-                                <PokemonCard key={p.id} pokemon={p} />
-                            ))}
-                        </ul>
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPokemons={totalPokemons}
-                            pokemonsPerPage={POKEMONS_PER_PAGE}
-                            onNext={handleNextPage}
-                            onPrev={handlePrevPage}
-                            onLast={handleLastPage}
-                        />
-                    </>
-                )}
-            </Main>
-            <Footer />
-        </>
-    );
+      <Pagination
+        navegar={navegar}
+        navegarPrimeiraOuUltima={navegarPrimeiraOuUltima}
+        fornecerFeedback={fornecerFeedback}
+      />
+    </Layout>
+  );
 }
-
 
 export default Home;

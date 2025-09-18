@@ -1,7 +1,7 @@
+import './style.css';
+
 function Main({ children }) {
-  return (
-    <main>{children}</main>
-  );
+  return <main className="main-container">{children}</main>;
 }
 
 

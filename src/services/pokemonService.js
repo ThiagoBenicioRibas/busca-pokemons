@@ -1,19 +1,32 @@
-const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2/pokemon';
+const urlBase = 'https://pokeapi.co/api/v2';
+const limite = 20;
 
-export async function getPokemonList(limit = 20, offset = 0) {
-    const response = await fetch(`${POKEAPI_BASE_URL}?limit=${limit}&offset=${offset}`);
-    const data = await response.json();
-    return data;
+export async function pegarPokemons(inicio = 0, url = null) {
+  const resposta = await fetch(url ? url : `${urlBase}/pokemon?limit=${limite}&offset=${inicio}`);
+  const respostaJson = await resposta.json();
+  const detalhes = await pegarDetalhes(respostaJson?.results);
+  return { ...respostaJson, details: detalhes };
 }
 
+export async function pegarDetalhes(listaPokemons) {
+  const informacoesPokemons = await Promise.all(
+    listaPokemons?.map(async (pokemon) => {
+      const respostaDetalhes = await fetch(pokemon?.url);
+      const respostaDetalhesJson = await respostaDetalhes.json();
+      return respostaDetalhesJson;
+    })
+  );
+  return formatarPokemons(informacoesPokemons);
+}
 
-export async function getPokemonDetails(url) {
-    const res = await fetch(url);
-    const pokemon = await res.json();
-    return {
-        id: pokemon.id,
-        name: pokemon.name,
-        image: pokemon.sprites.front_default,
-        description: `Este é um Pokémon com o ID ${pokemon.id}.`
-    };
+export function formatarPokemons(listaPokemons) {
+  return listaPokemons.map((item) => ({
+    id: item.id,
+    nome: item.name,
+    peso: item.weight,
+    imagem:
+      item.id > 930
+        ? item.sprites.front_default
+        : `https://raw.githubusercontent.com/PokeAPI/sprites/refs/heads/master/sprites/pokemon/other/showdown/${item?.id}.gif`,
+  }));
 }

@@ -1,32 +1,39 @@
-import logo from '../../assets/imagens/logo-buscador-pokemons.png';
-import './headerStyle.css';
+import logo from '../../assets/imagens/logo-busca-pokemons.png';
+import './style.css';
 
-function Header({ searchTerm, onSearchChange, onSearchSubmit }) {
-    return (
-        <header className="header-container">
-            <img
-                src={logo}
-                alt="Logo do Busca Pokémons: uma lupa sobre uma Pokébola."
-                className="header-logo"
-            />
-            <p>
-                Sua jornada para se tornar um Mestre Pokémon começa aqui. Pesquise, filtre e explore a Pokédex.
-            </p>
-            <form role="search" onSubmit={onSearchSubmit}>
-                <label htmlFor="pokemon-search" className="visually-hidden">Buscar Pokémon</label>
-                <input
-                    type="text"
-                    id="pokemon-search"
-                    placeholder="Buscar Pokémon..."
-                    value={searchTerm}
-                    onChange={onSearchChange}
-                />
-                <button type="submit">
-                    Buscar
-                </button>
-            </form>
-        </header>
-    );
+function Header({ termoBusca, aoMudarBusca, onSearch }) {
+  const aoEnviarFormulario = (evento) => {
+    evento.preventDefault();
+    if (termoBusca.trim() !== '') {
+      onSearch(termoBusca.trim().toLowerCase());
+    }
+  };
+
+  return (
+    <header className="header">
+      <div className="logo-busca-pokemons">
+        <img
+          src={logo}
+          alt="Logo do Busca Pokémons: uma lupa sobre uma Pokébola."
+        />
+        <h1>Busca-pokémons</h1>
+      </div>
+
+      <form className="formulario-header" onSubmit={aoEnviarFormulario}>
+        <label htmlFor="pokemon-busca" className="visually-hidden">
+          Buscar pokémon
+        </label>
+        <input
+          type="text"
+          id="pokemon-busca"
+          placeholder="Buscar pokemon..."
+          value={termoBusca}
+          onChange={aoMudarBusca}
+        />
+        <button type="submit">Buscar</button>
+      </form>
+    </header>
+  );
 }
 
 
