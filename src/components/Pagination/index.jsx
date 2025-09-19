@@ -14,12 +14,12 @@ function Pagination({ navegar, navegarPrimeiraOuUltima, fornecerFeedback }) {
   };
 
   return (
-    <div className="pagination-container">
+    <nav className="pagination-container" aria-label="Navegação entre páginas de Pokémons">
       <button onClick={() => handlePrimeiraOuUltima('primeira')}>Primeira Página</button>
       <button onClick={() => handleNavegar(false)}>Página Anterior</button>
       <button onClick={() => handleNavegar(true)}>Próxima Página</button>
       <button onClick={() => handlePrimeiraOuUltima('ultima')}>Última Página</button>
-    </div>
+    </nav>
   );
 }
 

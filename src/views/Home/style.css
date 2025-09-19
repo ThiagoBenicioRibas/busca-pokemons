@@ -1,4 +1,9 @@
-.home-pokemons {
+.home-pokemons-list {
+
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
   width: 100%;
   height: calc(100% - 80px);
   overflow: auto;

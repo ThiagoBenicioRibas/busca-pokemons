@@ -80,24 +80,28 @@ function Home() {
     >
       <AriaLive mensagem={mensagem} />
 
-      {!exibirResultadoBusca && <h2>Pokémons carregados</h2>}
+      {/* AQUI ESTÁ A ALTERAÇÃO: TUDO ENVOLVIDO POR UMA <section> */}
+      <section>
+        {!exibirResultadoBusca && <h2>Pokémons carregados</h2>}
 
-      {exibirResultadoBusca && (
-        <h2 tabIndex={-1} ref={h2BuscaRef}>
-          Resultado da busca
-        </h2>
-      )}
+        {exibirResultadoBusca && (
+          <h2 tabIndex={-1} ref={h2BuscaRef}>
+            Resultado da busca
+          </h2>
+        )}
 
-      <div className="home-pokemons" tabIndex={-1} ref={listaRef}>
-        {pokemons.map((pokemon) => (
-          <PokemonCard
-            key={pokemon.id}
-            nome={pokemon.nome}
-            imagem={pokemon.imagem}
-            peso={pokemon.peso}
-          />
-        ))}
-      </div>
+        <ul className="home-pokemons-list" tabIndex={-1} ref={listaRef}>
+          {pokemons.map((pokemon) => (
+            <li key={pokemon.id}>
+              <PokemonCard
+                nome={pokemon.nome}
+                imagem={pokemon.imagem}
+                peso={pokemon.peso}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <Pagination
         navegar={navegar}
